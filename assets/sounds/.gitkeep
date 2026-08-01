@@ -1,0 +1,5 @@
+# Custom notification sounds are dropped here.
+#
+# Android additionally requires the raw resource at
+# android/app/src/main/res/raw/<name>.mp3 for it to be usable as a
+# notification channel sound; iOS resolves the bundled asset directly.

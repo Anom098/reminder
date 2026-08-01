@@ -1,0 +1,14 @@
+# Copy to android/key.properties and fill in to sign release builds.
+#
+# android/key.properties is git-ignored. When it is absent, the release build
+# falls back to the debug signing config so that `flutter build apk --release`
+# and CI still succeed — the resulting APK is NOT distributable.
+#
+# Create a keystore with:
+#   keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA \
+#     -keysize 2048 -validity 10000 -alias upload
+
+storePassword=changeme
+keyPassword=changeme
+keyAlias=upload
+storeFile=/absolute/path/to/upload-keystore.jks

@@ -1,0 +1,87 @@
+name: voice_reminder
+description: >-
+  Offline-first voice reminder application. Create reminders by speaking or
+  typing, and have them announced aloud at the scheduled time.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  # 3.27 is the floor: the UI uses Color.withValues / toARGB32 and the
+  # CardThemeData / DialogThemeData shape introduced in that release.
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # ---- State management & DI -------------------------------------------
+  # Providers are hand-written rather than generated: the graph is small enough
+  # that codegen adds build time without removing meaningful boilerplate, and it
+  # keeps `build_runner` responsible for Drift alone.
+  flutter_riverpod: ^2.6.1
+
+  # ---- Routing ---------------------------------------------------------
+  go_router: ^14.6.2
+
+  # ---- Persistence -----------------------------------------------------
+  drift: ^2.21.0
+  # Imported directly to set `sqlite3.tempDirectory`; a transitive dependency of
+  # drift, declared explicitly because we depend on its API.
+  sqlite3: ^2.4.6
+  sqlite3_flutter_libs: ^0.5.26
+  path_provider: ^2.1.5
+  path: ^1.9.0
+  shared_preferences: ^2.3.3
+  flutter_secure_storage: ^9.2.2
+
+  # ---- Notifications & scheduling --------------------------------------
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
+  # 0.5.x still used Flutter's v1 embedding (ShimPluginRegistry,
+  # PluginRegistrantCallback), which no longer exists and fails to compile.
+  workmanager: ^0.9.0+3
+  android_alarm_manager_plus: ^4.0.7
+
+  # ---- Voice -----------------------------------------------------------
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.2.0
+
+  # ---- Platform integration -------------------------------------------
+  permission_handler: ^11.3.1
+  share_plus: ^10.1.2
+  file_picker: ^8.1.6
+  package_info_plus: ^8.1.1
+  device_info_plus: ^11.2.0
+
+  # ---- Utilities -------------------------------------------------------
+  logger: ^2.5.0
+  flutter_dotenv: ^5.2.1
+  # Pinned by flutter_localizations; must match the SDK's version exactly.
+  intl: ^0.20.2
+  uuid: ^4.5.1
+  collection: ^1.18.0
+  csv: ^6.0.0
+  equatable: ^2.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+  build_runner: ^2.4.13
+  drift_dev: ^2.21.0
+
+  flutter_lints: ^5.0.0
+  mocktail: ^1.0.4
+  fake_async: ^1.3.2
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/sounds/

@@ -1,0 +1,137 @@
+# Codemagic CI/CD — iOS builds.
+#
+# iOS cannot be compiled on Windows or Linux; Apple requires macOS and Xcode.
+# This file is how this project produces an IPA without owning a Mac.
+#
+# Two workflows, because they need very different things from you:
+#
+#   ios-unsigned   Needs no Apple account at all. Proves the iOS build compiles
+#                  and emits an unsigned .ipa. That file cannot be installed by
+#                  double-clicking — it has no signature — but tools such as
+#                  Sideloadly or AltStore re-sign it with a free Apple ID for
+#                  personal-device use. Start here.
+#
+#   ios-release    Needs a paid Apple Developer Program membership ($99/yr) and
+#                  an App Store Connect API key added to Codemagic. Produces a
+#                  properly signed IPA and can ship it to TestFlight.
+#
+# Generated Dart (Drift's *.g.dart) is gitignored, so every workflow must run
+# build_runner before building or the project will not compile.
+
+definitions:
+  instance: &instance
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+  environment: &flutter_env
+    flutter: 3.44.8
+    xcode: latest
+    cocoapods: default
+
+  prepare: &prepare
+    - name: Fetch packages
+      script: flutter pub get
+    - name: Generate code
+      # Drift's database code is generated, not committed. Without this the
+      # build fails on missing app_database.g.dart.
+      script: dart run build_runner build --delete-conflicting-outputs
+    - name: Analyze
+      # Infos are advisory; errors and warnings must block a release build.
+      script: flutter analyze --no-fatal-infos
+    - name: Test
+      script: flutter test --machine > test-report.json
+      test_report: test-report.json
+
+workflows:
+  ios-unsigned:
+    name: iOS (unsigned IPA)
+    <<: *instance
+    environment:
+      <<: *flutter_env
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - *prepare
+      - name: Install pods
+        script: |
+          cd ios
+          pod install --repo-update
+      - name: Build unsigned .app
+        script: flutter build ios --release --no-codesign
+      - name: Package as .ipa
+        # An IPA is a zip with the .app inside a Payload/ directory. Doing this
+        # by hand is what lets an unsigned build produce an installable-shaped
+        # artifact without any Apple credentials.
+        script: |
+          set -e
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -qr voice-reminder-unsigned.ipa Payload
+          rm -rf Payload
+    artifacts:
+      - build/ios/iphoneos/*.ipa
+      - flutter_drive.log
+    publishing:
+      email:
+        recipients:
+          - aiworkflows007@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  ios-release:
+    name: iOS (signed, TestFlight)
+    <<: *instance
+    # Manual only. An automatic trigger here would burn build minutes and push
+    # unintended builds to TestFlight on every commit to main.
+    environment:
+      <<: *flutter_env
+      groups:
+        # Create this group in Codemagic → Environment variables and add
+        # APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY_IDENTIFIER and
+        # APP_STORE_CONNECT_PRIVATE_KEY. Mark them all secure.
+        - appstore_credentials
+      vars:
+        BUNDLE_ID: "com.voicereminder.voiceReminder"
+        APP_STORE_APPLE_ID: "" # numeric id from App Store Connect, once created
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.voicereminder.voiceReminder
+    scripts:
+      - *prepare
+      - name: Set up signing
+        script: |
+          set -e
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Install pods
+        script: |
+          cd ios
+          pod install --repo-update
+      - name: Build IPA
+        script: |
+          flutter build ipa --release \
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # Deliberately not submitting for App Store review automatically.
+        submit_to_app_store: false
+      email:
+        recipients:
+          - aiworkflows007@gmail.com

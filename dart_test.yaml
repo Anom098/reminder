@@ -1,0 +1,12 @@
+# Test configuration.
+#
+# The `db` tag marks tests that open a real in-memory SQLite database. They are
+# part of the default run, but the tag lets them be excluded on a machine
+# without the native sqlite3 library:
+#
+#     flutter test --exclude-tags db
+
+tags:
+  db:
+    # Opening and migrating a database is slower than a pure unit test.
+    timeout: 2x
