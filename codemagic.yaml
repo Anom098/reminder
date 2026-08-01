@@ -28,20 +28,6 @@ definitions:
     xcode: latest
     cocoapods: default
 
-  prepare: &prepare
-    - name: Fetch packages
-      script: flutter pub get
-    - name: Generate code
-      # Drift's database code is generated, not committed. Without this the
-      # build fails on missing app_database.g.dart.
-      script: dart run build_runner build --delete-conflicting-outputs
-    - name: Analyze
-      # Infos are advisory; errors and warnings must block a release build.
-      script: flutter analyze --no-fatal-infos
-    - name: Test
-      script: flutter test --machine > test-report.json
-      test_report: test-report.json
-
 workflows:
   ios-unsigned:
     name: iOS (unsigned IPA)
@@ -57,7 +43,18 @@ workflows:
           include: true
           source: true
     scripts:
-      - *prepare
+      - name: Fetch packages
+        script: flutter pub get
+      - name: Generate code
+        # Drift's database code is generated, not committed. Without this the
+        # build fails on missing app_database.g.dart.
+        script: dart run build_runner build --delete-conflicting-outputs
+      - name: Analyze
+        # Infos are advisory; errors and warnings must block a release build.
+        script: flutter analyze --no-fatal-infos
+      - name: Test
+        script: flutter test --machine > test-report.json
+        test_report: test-report.json
       - name: Install pods
         script: |
           cd ios
@@ -105,7 +102,18 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.voicereminder.voiceReminder
     scripts:
-      - *prepare
+      - name: Fetch packages
+        script: flutter pub get
+      - name: Generate code
+        # Drift's database code is generated, not committed. Without this the
+        # build fails on missing app_database.g.dart.
+        script: dart run build_runner build --delete-conflicting-outputs
+      - name: Analyze
+        # Infos are advisory; errors and warnings must block a release build.
+        script: flutter analyze --no-fatal-infos
+      - name: Test
+        script: flutter test --machine > test-report.json
+        test_report: test-report.json
       - name: Set up signing
         script: |
           set -e
