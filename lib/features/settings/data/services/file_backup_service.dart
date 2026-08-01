@@ -373,6 +373,7 @@ final class FileBackupService implements BackupService {
         'textScaleOverride': settings.textScaleOverride,
         'speakReminders': settings.speakReminders,
         'speakRepeatCount': settings.speakRepeatCount,
+        'speakRepeatIntervalSeconds': settings.speakRepeatInterval.inSeconds,
         'speakInSilentMode': settings.speakInSilentMode,
         'notificationVibration': settings.notificationVibration,
         'defaultSnoozeMinutes': settings.defaultSnooze.inMinutes,
@@ -560,6 +561,9 @@ final class FileBackupService implements BackupService {
       // `copyWith` clamps, so a hand-edited backup asking for 500 repeats
       // restores as the maximum rather than being rejected or obeyed.
       speakRepeatCount: json['speakRepeatCount'] as int?,
+      speakRepeatInterval: json['speakRepeatIntervalSeconds'] is int
+          ? Duration(seconds: json['speakRepeatIntervalSeconds'] as int)
+          : null,
       speakInSilentMode: json['speakInSilentMode'] as bool?,
       notificationVibration: json['notificationVibration'] as bool?,
       defaultSnooze: json['defaultSnoozeMinutes'] is int

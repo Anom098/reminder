@@ -92,6 +92,13 @@ final class SettingsController extends Notifier<AppSettings> {
   Future<Result<AppSettings>> setSpeakRepeatCount(int count) =>
       _persist(state.copyWith(speakRepeatCount: count));
 
+  /// Sets the pause between repeats of an announcement.
+  ///
+  /// Out-of-range values are clamped by [AppSettings.copyWith] rather than
+  /// rejected.
+  Future<Result<AppSettings>> setSpeakRepeatInterval(Duration interval) =>
+      _persist(state.copyWith(speakRepeatInterval: interval));
+
   /// Controls whether reminders are spoken in silent mode.
   Future<Result<AppSettings>> setSpeakInSilentMode({required bool enabled}) =>
       _persist(state.copyWith(speakInSilentMode: enabled));

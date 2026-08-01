@@ -63,13 +63,45 @@ void main() {
     });
   });
 
-  group('the repeat gap', () {
-    test('is long enough to hear as a separate utterance', () {
+  group('the repeat interval', () {
+    test('defaults to something long enough to hear as a separate utterance', () {
       // Back-to-back repeats run together into one sentence and stop reading
       // as a repetition, which defeats the point of the setting.
       expect(
-        AppSettings.speakRepeatGap.inMilliseconds,
+        const AppSettings().speakRepeatInterval.inMilliseconds,
         greaterThanOrEqualTo(500),
+      );
+    });
+
+    test('rejects a zero or negative interval', () {
+      expect(
+        AppSettings.clampSpeakRepeatInterval(Duration.zero),
+        AppSettings.minSpeakRepeatInterval,
+      );
+      expect(
+        AppSettings.clampSpeakRepeatInterval(const Duration(seconds: -3)),
+        AppSettings.minSpeakRepeatInterval,
+      );
+    });
+
+    test('caps absurd values rather than obeying them', () {
+      expect(
+        AppSettings.clampSpeakRepeatInterval(const Duration(minutes: 5)),
+        AppSettings.maxSpeakRepeatInterval,
+      );
+    });
+
+    test('passes valid values through unchanged', () {
+      const Duration interval = Duration(seconds: 5);
+      expect(AppSettings.clampSpeakRepeatInterval(interval), interval);
+    });
+
+    test('clamps on the way in via copyWith', () {
+      expect(
+        const AppSettings()
+            .copyWith(speakRepeatInterval: const Duration(minutes: 5))
+            .speakRepeatInterval,
+        AppSettings.maxSpeakRepeatInterval,
       );
     });
   });

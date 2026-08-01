@@ -61,6 +61,10 @@ final class PreferencesSettingsRepository implements SettingsRepository {
           StorageKeys.speakRepeatCount,
           settings.speakRepeatCount,
         ),
+        _prefs.setInt(
+          StorageKeys.speakRepeatIntervalSeconds,
+          settings.speakRepeatInterval.inSeconds,
+        ),
         _prefs.setBool(
           StorageKeys.speakInSilentMode,
           settings.speakInSilentMode,
@@ -172,6 +176,12 @@ final class PreferencesSettingsRepository implements SettingsRepository {
         _prefs.getInt(StorageKeys.speakRepeatCount) ??
             defaults.speakRepeatCount,
       ),
+      speakRepeatInterval: AppSettings.clampSpeakRepeatInterval(
+        Duration(
+          seconds: _prefs.getInt(StorageKeys.speakRepeatIntervalSeconds) ??
+              defaults.speakRepeatInterval.inSeconds,
+        ),
+      ),
       speakInSilentMode: _prefs.getBool(StorageKeys.speakInSilentMode) ?? false,
       notificationVibration:
           _prefs.getBool(StorageKeys.notificationVibration) ?? true,
@@ -217,6 +227,7 @@ final class PreferencesSettingsRepository implements SettingsRepository {
     StorageKeys.ttsVolume,
     StorageKeys.speakReminders,
     StorageKeys.speakRepeatCount,
+    StorageKeys.speakRepeatIntervalSeconds,
     StorageKeys.speakInSilentMode,
     StorageKeys.notificationVibration,
     StorageKeys.defaultSnoozeMinutes,

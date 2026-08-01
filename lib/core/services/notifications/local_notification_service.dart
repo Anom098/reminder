@@ -12,6 +12,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:voice_reminder/core/constants/notification_constants.dart';
 import 'package:voice_reminder/core/errors/app_failure.dart';
 import 'package:voice_reminder/core/services/logging/app_logger.dart';
+import 'package:voice_reminder/core/services/notifications/ios_spoken_sound_baker.dart';
 import 'package:voice_reminder/core/services/notifications/notification_background_handler.dart';
 import 'package:voice_reminder/core/services/notifications/notification_service.dart';
 import 'package:voice_reminder/core/utils/result.dart';
@@ -22,11 +23,14 @@ final class LocalNotificationService implements NotificationService {
   LocalNotificationService({
     required AppLogger logger,
     FlutterLocalNotificationsPlugin? plugin,
+    IosSpokenSoundBaker? soundBaker,
   })  : _log = logger.forContext('Notifications'),
-        _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+        _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
+        _soundBaker = soundBaker ?? IosSpokenSoundBaker(logger: logger);
 
   final FlutterLocalNotificationsPlugin _plugin;
   final AppLogger _log;
+  final IosSpokenSoundBaker _soundBaker;
 
   /// Replays the most recent action to late subscribers.
   ///
@@ -185,7 +189,7 @@ final class LocalNotificationService implements NotificationService {
         notification.title,
         notification.body,
         when,
-        _detailsFor(notification),
+        await _detailsFor(notification),
         payload: jsonEncode(notification.payload),
         // The scheduled instant is already an absolute point in time in the
         // device's zone, so it must not be reinterpreted as wall-clock time.
@@ -244,31 +248,36 @@ final class LocalNotificationService implements NotificationService {
       return ready;
     }
     return Result.guardAsync<void>(
-      () => _plugin.show(
+      () async => _plugin.show(
         notification.id,
         notification.title,
         notification.body,
-        _detailsFor(notification),
+        await _detailsFor(notification),
         payload: jsonEncode(notification.payload),
       ),
     );
   }
 
   @override
-  Future<Result<void>> cancel(int id) =>
-      Result.guardAsync<void>(() => _plugin.cancel(id));
+  Future<Result<void>> cancel(int id) => Result.guardAsync<void>(() async {
+        await _plugin.cancel(id);
+        await _soundBaker.delete(id);
+      });
 
   @override
   Future<Result<void>> cancelMany(Iterable<int> ids) =>
       Result.guardAsync<void>(() async {
         for (final int id in ids) {
           await _plugin.cancel(id);
+          await _soundBaker.delete(id);
         }
       });
 
   @override
-  Future<Result<void>> cancelAll() =>
-      Result.guardAsync<void>(() => _plugin.cancelAll());
+  Future<Result<void>> cancelAll() => Result.guardAsync<void>(() async {
+        await _plugin.cancelAll();
+        await _soundBaker.deleteAll();
+      });
 
   @override
   Future<Result<List<int>>> pendingIds() =>
@@ -352,8 +361,11 @@ final class LocalNotificationService implements NotificationService {
     _pendingAction = _toAction(response);
   }
 
-  NotificationDetails _detailsFor(ScheduledNotification notification) {
+  Future<NotificationDetails> _detailsFor(
+    ScheduledNotification notification,
+  ) async {
     final bool urgent = notification.priority.isTimeCritical;
+    final String? spokenSound = await _spokenSoundFor(notification);
 
     return NotificationDetails(
       android: AndroidNotificationDetails(
@@ -378,8 +390,29 @@ final class LocalNotificationService implements NotificationService {
             : null,
         interruptionLevel:
             urgent ? InterruptionLevel.timeSensitive : InterruptionLevel.active,
+        presentSound: spokenSound == null ? null : true,
+        sound: spokenSound,
       ),
     );
+  }
+
+  /// Bakes and returns the notification-sound filename that lets iOS speak
+  /// [notification] while the device is locked, or `null` when there is
+  /// nothing to say.
+  ///
+  /// A baking failure is swallowed rather than surfaced: the notification
+  /// itself must still be scheduled with the OS default sound, since losing
+  /// the whole reminder over a missing announcement would be far worse.
+  Future<String?> _spokenSoundFor(ScheduledNotification notification) async {
+    if (!Platform.isIOS) {
+      return null;
+    }
+    final Object? text =
+        notification.payload[NotificationConstants.payloadSpokenText];
+    if (text is! String || text.trim().isEmpty) {
+      return null;
+    }
+    return _soundBaker.bake(notificationId: notification.id, text: text);
   }
 
   static const List<AndroidNotificationAction> _androidActions =

@@ -46,6 +46,20 @@ class VoiceSettingsScreen extends ConsumerWidget {
             onChanged: (int value) =>
                 unawaited(controller.setSpeakRepeatCount(value)),
           ),
+          _SpeechSlider(
+            icon: Icons.timer_outlined,
+            label: 'Pause between repeats',
+            value: settings.speakRepeatInterval.inSeconds.toDouble(),
+            min: AppSettings.minSpeakRepeatInterval.inSeconds.toDouble(),
+            max: AppSettings.maxSpeakRepeatInterval.inSeconds.toDouble(),
+            enabled: settings.speakReminders && settings.speakRepeatCount > 1,
+            format: (double value) => '${value.round()}s',
+            onChanged: (double value) => unawaited(
+              controller.setSpeakRepeatInterval(
+                Duration(seconds: value.round()),
+              ),
+            ),
+          ),
           SwitchListTile(
             secondary: const Icon(Icons.volume_up_outlined),
             value: settings.speakInSilentMode,
@@ -103,7 +117,12 @@ class VoiceSettingsScreen extends ConsumerWidget {
             child: FilledButton.tonalIcon(
               onPressed: settings.speakReminders
                   ? () => unawaited(
-                        _preview(ref, speech, settings.speakRepeatCount),
+                        _preview(
+                          ref,
+                          speech,
+                          settings.speakRepeatCount,
+                          settings.speakRepeatInterval,
+                        ),
                       )
                   : null,
               icon: const Icon(Icons.play_arrow),
@@ -125,11 +144,12 @@ class VoiceSettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     TtsSpeechSettings speech,
     int repeats,
+    Duration interval,
   ) async {
     final TextToSpeechService tts = ref.read(textToSpeechServiceProvider);
     for (int pass = 0; pass < repeats; pass++) {
       if (pass > 0) {
-        await Future<void>.delayed(AppSettings.speakRepeatGap);
+        await Future<void>.delayed(interval);
       }
       final Result<void> spoken = await tts.speak(
         'Reminder. Take your tablets.',

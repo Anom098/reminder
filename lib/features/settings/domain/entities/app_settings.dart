@@ -46,6 +46,7 @@ final class AppSettings extends Equatable {
     this.speech = const TtsSpeechSettings(),
     this.speakReminders = true,
     this.speakRepeatCount = 1,
+    this.speakRepeatInterval = const Duration(seconds: 5),
     this.speakInSilentMode = false,
     this.notificationVibration = true,
     this.defaultSnooze = const Duration(minutes: 10),
@@ -97,12 +98,31 @@ final class AppSettings extends Equatable {
   /// Pause inserted between repeats.
   ///
   /// Without a gap the repeats run together into one long sentence and stop
-  /// reading as a repetition at all.
-  static const Duration speakRepeatGap = Duration(milliseconds: 900);
+  /// reading as a repetition at all. User-configurable within
+  /// [minSpeakRepeatInterval]–[maxSpeakRepeatInterval]; imported or stored
+  /// values outside that range are clamped for the same reason repeat count is.
+  final Duration speakRepeatInterval;
+
+  /// Shortest allowed pause between repeats.
+  static const Duration minSpeakRepeatInterval = Duration(seconds: 1);
+
+  /// Longest allowed pause between repeats.
+  static const Duration maxSpeakRepeatInterval = Duration(seconds: 30);
 
   /// Constrains [value] to the supported range.
   static int clampSpeakRepeatCount(int value) =>
       value.clamp(minSpeakRepeatCount, maxSpeakRepeatCount);
+
+  /// Constrains [value] to the supported range.
+  static Duration clampSpeakRepeatInterval(Duration value) {
+    if (value < minSpeakRepeatInterval) {
+      return minSpeakRepeatInterval;
+    }
+    if (value > maxSpeakRepeatInterval) {
+      return maxSpeakRepeatInterval;
+    }
+    return value;
+  }
 
   /// Whether to speak even when the device is in silent mode.
   final bool speakInSilentMode;
@@ -132,6 +152,7 @@ final class AppSettings extends Equatable {
     TtsSpeechSettings? speech,
     bool? speakReminders,
     int? speakRepeatCount,
+    Duration? speakRepeatInterval,
     bool? speakInSilentMode,
     bool? notificationVibration,
     Duration? defaultSnooze,
@@ -152,6 +173,9 @@ final class AppSettings extends Equatable {
         speakReminders: speakReminders ?? this.speakReminders,
         speakRepeatCount:
             clampSpeakRepeatCount(speakRepeatCount ?? this.speakRepeatCount),
+        speakRepeatInterval: clampSpeakRepeatInterval(
+          speakRepeatInterval ?? this.speakRepeatInterval,
+        ),
         speakInSilentMode: speakInSilentMode ?? this.speakInSilentMode,
         notificationVibration:
             notificationVibration ?? this.notificationVibration,
@@ -172,6 +196,7 @@ final class AppSettings extends Equatable {
         speech,
         speakReminders,
         speakRepeatCount,
+        speakRepeatInterval,
         speakInSilentMode,
         notificationVibration,
         defaultSnooze,

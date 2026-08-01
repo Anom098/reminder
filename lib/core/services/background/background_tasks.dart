@@ -225,6 +225,11 @@ Future<void> speakDueRemindersCallback(int alarmId) async {
     final int repeats = AppSettings.clampSpeakRepeatCount(
       prefs.getInt(StorageKeys.speakRepeatCount) ?? 1,
     );
+    final Duration interval = AppSettings.clampSpeakRepeatInterval(
+      Duration(
+        seconds: prefs.getInt(StorageKeys.speakRepeatIntervalSeconds) ?? 5,
+      ),
+    );
 
     log.info('Announcing ${speakable.length} reminder(s), $repeats time(s).');
     await tts.applySettings(_speechSettingsFrom(prefs));
@@ -233,7 +238,7 @@ Future<void> speakDueRemindersCallback(int alarmId) async {
         if (pass > 0) {
           // `speak` only returns once playback has finished, so this is a
           // genuine pause between utterances rather than an overlap guard.
-          await Future<void>.delayed(AppSettings.speakRepeatGap);
+          await Future<void>.delayed(interval);
         }
         final Result<void> spoken = await tts.speak(reminder.spokenText);
         if (spoken case Failure<void>(failure: final AppFailure f)) {

@@ -149,7 +149,7 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap>
     final TextToSpeechService tts = ref.read(textToSpeechServiceProvider);
     for (int pass = 0; pass < settings.speakRepeatCount; pass++) {
       if (pass > 0) {
-        await Future<void>.delayed(AppSettings.speakRepeatGap);
+        await Future<void>.delayed(settings.speakRepeatInterval);
       }
       final Result<void> spoken =
           await tts.speak(text, settings: settings.speech);

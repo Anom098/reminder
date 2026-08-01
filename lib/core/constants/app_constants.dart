@@ -106,6 +106,14 @@ abstract final class StorageKeys {
   /// settings repository — the key lives here so the two readers cannot drift.
   static const String speakRepeatCount = 'settings.speak_repeat_count';
 
+  /// Seconds between repeats of a spoken reminder.
+  ///
+  /// Read directly by the background isolate and by the iOS locked-screen
+  /// sound baker, neither of which has access to the settings repository —
+  /// the key lives here so all readers cannot drift.
+  static const String speakRepeatIntervalSeconds =
+      'settings.speak_repeat_interval_seconds';
+
   /// Whether reminders are spoken when the device is in silent mode.
   static const String speakInSilentMode = 'settings.speak_in_silent_mode';
 
