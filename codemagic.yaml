@@ -97,10 +97,19 @@ workflows:
         - appstore_credentials
       vars:
         BUNDLE_ID: "com.voicereminder.voiceReminder"
-        APP_STORE_APPLE_ID: "" # numeric id from App Store Connect, once created
+        # Placeholder — replace with the numeric App Store Connect app id once
+        # the app record exists. An empty string fails Codemagic's schema
+        # validation, so this can't be left blank even while unused.
+        APP_STORE_APPLE_ID: "0000000000"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.voicereminder.voiceReminder
+    integrations:
+      # Name of an App Store Connect integration configured under Codemagic
+      # Team settings → Integrations → App Store Connect. Create one there
+      # (using the same issuer id / key id / private key as the
+      # appstore_credentials group) before this workflow can actually run.
+      app_store_connect: appstore_credentials
     scripts:
       - name: Fetch packages
         script: flutter pub get
